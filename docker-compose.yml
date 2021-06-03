@@ -1,0 +1,52 @@
+version: "3.9"
+services:
+  db:
+    image: mysql:5.7.22
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306"
+    restart: always
+    volumes: [ ./data:/var/lib/mysql ]
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "db", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 2s
+      retries: 10
+
+  api:
+    build: ./movies-api
+    ports:
+      - "8000:8000"
+    links:
+      - db
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      SECRET_KEY: testkey
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: test
+      FIRST_RUN: 0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://api:8000/v1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    environment:
+      BASE_URL: "http://api:8000/v1"
+    build: ./react-movies
+    links:
+      - api
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - 80:80

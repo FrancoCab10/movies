@@ -1,0 +1,25 @@
+version: "3.9"
+services:
+  api:
+    build: ./movies-api
+    ports:
+      - "8000:8000"
+    links:
+      - db
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      SECRET_KEY: testkey
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: test
+      FIRST_RUN: 1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://api:8000/v1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
